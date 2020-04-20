@@ -47,7 +47,6 @@ pub struct Miner {
 }
 
 pub struct State {
-    generation_signature: String,
     generation_signature_bytes: [u8; 32],
     height: u64,
     block: u64,
@@ -65,7 +64,6 @@ pub struct State {
 impl State {
     fn new() -> Self {
         Self {
-            generation_signature: "".to_owned(),
             height: 0,
             block: 0,
             scoop: 0,
@@ -90,10 +88,7 @@ impl State {
         self.base_target = mining_info.base_target;
         self.server_target_deadline = mining_info.target_deadline;
 
-        self.generation_signature_bytes =
-            poc_hashing::decode_gensig(&mining_info.generation_signature);
-        self.generation_signature = mining_info.generation_signature.clone();
-
+        self.generation_signature_bytes = mining_info.generation_signature.clone();
         let scoop =
             poc_hashing::calculate_scoop(mining_info.height, &self.generation_signature_bytes);
         info!(
@@ -478,7 +473,7 @@ impl Miner {
                                     error!("{: <80}", "outage resolved.");
                                     state.outage = false;
                                 }
-                                if mining_info.generation_signature != state.generation_signature {
+                                if mining_info.generation_signature != state.generation_signature_bytes {
                                     state.update_mining_info(&mining_info);
 
                                     reader.lock().unwrap().start_reading(

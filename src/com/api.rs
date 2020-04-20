@@ -2,6 +2,10 @@ use bytes::Buf;
 use reqwest::r#async::Chunk;
 use serde::de::{self, DeserializeOwned};
 use std::fmt;
+use codec::{
+    Decode,
+    Encode,
+};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,27 +24,19 @@ pub struct GetMiningInfoRequest<'a> {
     pub request_type: &'a str,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode)]
 pub struct SubmitNonceResponse {
-    pub deadline: u64,
+    pub verify_result: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode)]
 pub struct MiningInfoResponse {
-    pub generation_signature: String,
+    pub generation_signature: [u8; 32],
 
-    #[serde(deserialize_with = "from_str_or_int")]
     pub base_target: u64,
 
-    #[serde(deserialize_with = "from_str_or_int")]
     pub height: u64,
 
-    #[serde(
-        default = "default_target_deadline",
-        deserialize_with = "from_str_or_int"
-    )]
     pub target_deadline: u64,
 }
 
@@ -65,6 +61,7 @@ pub struct PoolError {
 pub enum FetchError {
     Http(reqwest::Error),
     Pool(PoolError),
+    Substrate(substrate_subxt::Error),
 }
 
 impl From<reqwest::Error> for FetchError {

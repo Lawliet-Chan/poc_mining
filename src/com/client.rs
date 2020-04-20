@@ -11,14 +11,34 @@ use std::time::Duration;
 use url::form_urlencoded::byte_serialize;
 use url::Url;
 
+use codec::{
+    Decode,
+    Encode,
+};
+pub use substrate_subxt::{
+    system::System,
+    ExtrinsicSuccess,
+    Call,
+    Error as SubError,
+    Client as SubClient,
+    ClientBuilder,
+};
+use sub_runtime::Runtime;
+use sp_core::storage::StorageKey;
+use sp_keyring::AccountKeyring;
+
+type AccountId = <Runtime as System>::AccountId;
+
+pub const MODULE: &str = "PoC";
+pub const MINING: &str = "mining";
+
 /// A client for communicating with Pool/Proxy/Wallet.
 #[derive(Clone, Debug)]
 pub struct Client {
-    inner: InnerClient,
+    inner: SubClient<Runtime>,
     account_id_to_secret_phrase: Arc<HashMap<u64, String>>,
     base_uri: Url,
     total_size_gb: usize,
-    headers: Arc<HeaderMap>,
 }
 
 /// Parameters ussed for nonce submission.
@@ -73,45 +93,6 @@ pub enum ProxyDetails {
 }
 
 impl Client {
-    fn ua() -> String {
-        "Scavenger/".to_owned() + crate_version!()
-    }
-
-    fn submit_nonce_headers(
-        proxy_details: ProxyDetails,
-        total_size_gb: usize,
-        additional_headers: HashMap<String, String>,
-    ) -> HeaderMap {
-        let ua = Client::ua();
-        let mut headers = HeaderMap::new();
-        headers.insert("User-Agent", ua.to_owned().parse().unwrap());
-        if proxy_details == ProxyDetails::Enabled {
-            // It's amazing how a user agent is just not enough.
-            headers.insert("X-Capacity", total_size_gb.to_string().parse().unwrap());
-            headers.insert("X-Miner", ua.to_owned().parse().unwrap());
-            headers.insert(
-                "X-Minername",
-                hostname::get_hostname()
-                    .unwrap_or_else(|| "".to_owned())
-                    .parse()
-                    .unwrap(),
-            );
-            headers.insert(
-                "X-Plotfile",
-                ("ScavengerProxy/".to_owned()
-                    + &*hostname::get_hostname().unwrap_or_else(|| "".to_owned()))
-                    .parse()
-                    .unwrap(),
-            );
-        }
-
-        for (key, value) in additional_headers {
-            let header_name = HeaderName::from_bytes(&key.into_bytes()).unwrap();
-            headers.insert(header_name, value.parse().unwrap());
-        }
-
-        headers
-    }
 
     /// Create a new client communicating with Pool/Proxy/Wallet.
     pub fn new(
@@ -126,51 +107,50 @@ impl Client {
             *secret_phrase = byte_serialize(secret_phrase.as_bytes()).collect();
         }
 
-        let headers =
-            Client::submit_nonce_headers(proxy_details, total_size_gb, additional_headers);
-
-        let client = ClientBuilder::new()
-            .timeout(Duration::from_millis(timeout))
+        let url = base_uri.as_str();
+        let client = ClientBuilder::<Runtime>::new()
+            .set_url(url)
             .build()
-            .unwrap();
+            .await?;
 
         Self {
             inner: client,
             account_id_to_secret_phrase: Arc::new(secret_phrases),
             base_uri,
             total_size_gb,
-            headers: Arc::new(headers),
         }
     }
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
-        self.inner
-            .get(self.uri_for("burst"))
-            .headers((*self.headers).clone())
-            .query(&GetMiningInfoRequest {
-                request_type: &"getMiningInfo",
-            })
-            .send()
-            .and_then(|mut res| {
-                let body = mem::replace(res.body_mut(), Decoder::empty());
-                body.concat2()
-            })
-            .from_err::<FetchError>()
-            .and_then(|body| match parse_json_result(&body) {
-                Ok(x) => Ok(x),
-                Err(e) => Err(e.into()),
-            })
-    }
+        // use block_hash as gen_sig
+        let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
 
-    pub fn uri_for(&self, path: &str) -> Url {
-        let mut url = self.base_uri.clone();
-        url.path_segments_mut()
-            .map_err(|_| "cannot be base")
-            .unwrap()
-            .pop_if_empty()
-            .push(path);
-        url
+        let targets_key = StorageKey(b"TargetInfo".to_vec());
+        let targets_opt = self.inner.fetch(targets_key, None).await?;
+        let mut base_target = 488671834567_u64;
+        if let Some(targets) = targets_opt {
+            let target = targets.last().unwrap();
+            base_target = target.base_target;
+        }
+
+        let mut height = 0_u64;
+        let mut deadline = 0_u64;
+        let dl_key = StorageKey(b"DlInfo".to_vec());
+        let dl_opt = self.inner.fetch(dl_key, None).await?;
+        if let Some(dls) = dl_opt {
+            if let Some(dl) = dls.last(){
+                height = dl.block;
+                deadline = dl.best_dl;
+            }
+        }
+        Ok(MiningInfoResponse{
+            base_target,
+            height,
+            generation_signature: block_hash,
+            target_deadline: deadline,
+        })
+
     }
 
     /// Submit nonce to the pool and get the corresponding deadline.
@@ -178,52 +158,36 @@ impl Client {
         &self,
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
-        let secret_phrase = self
-            .account_id_to_secret_phrase
-            .get(&submission_data.account_id);
+        let signer = AccountKeyring::Alice.pair();
+        let xt = self.inner.xt(signer, None).await?;
+        let xt_result = xt
+            .watch()
+            .submit(Self::mining(submission_data.account_id, submission_data.gen_sig, submission_data.nonce, submission_data.deadline))
+            .await?;
+        match xt_result {
+            Ok(success) => {
+                match success
+                    .find_event::<(AccountId, bool)>(
+                        MODULE, "VerifyDeadline",
+                    ) {
+                    Some(Ok((_id, verify_ok))) => {
+                        return Ok(SubmitNonceResponse{verify_result})
+                    }
+                    Some(Err(err)) => return Err(err.into()),
+                    None => return Err(FetchError::Substrate(SubError::Other("Failed to find PoC::VerifyDeadline".to_string()))),
+                }
+            }
+            Err(err) => Err(err),
+        }
+    }
 
-        // If we don't have a secret phrase then we most likely talk to a pool or a proxy.
-        // Both can make use of the deadline, e.g. a proxy won't validate deadlines but still
-        // needs to rank the deadlines.
-        // The best thing is that legacy proxies use the unadjusted deadlines so...
-        // yay another parameter!
-        let deadline = if secret_phrase.is_none() {
-            Some(submission_data.deadline_unadjusted)
-        } else {
-            None
-        };
-
-        let query = SubmitNonceRequest {
-            request_type: &"submitNonce",
-            account_id: submission_data.account_id,
-            nonce: submission_data.nonce,
-            secret_phrase,
-            blockheight: submission_data.height,
+    fn mining(account_id: u64, sig: [u8; 32], nonce: u64, deadline: u64) -> Call<MiningArgs>{
+        Call::new(MODULE, MINING, MiningArgs{
+            account_id,
+            sig,
+            nonce,
             deadline,
-        };
-
-        // Some "Extrawurst" for the CreepMiner proxy (I think?) which needs the deadline inside
-        // the "X-Deadline" header.
-        let mut headers = (*self.headers).clone();
-        headers.insert(
-            "X-Deadline",
-            submission_data.deadline.to_string().parse().unwrap(),
-        );
-
-        self.inner
-            .post(self.uri_for("burst"))
-            .headers(headers)
-            .query(&query)
-            .send()
-            .and_then(|mut res| {
-                let body = mem::replace(res.body_mut(), Decoder::empty());
-                body.concat2()
-            })
-            .from_err::<FetchError>()
-            .and_then(|body| match parse_json_result(&body) {
-                Ok(x) => Ok(x),
-                Err(e) => Err(e.into()),
-            })
+        })
     }
 }
 

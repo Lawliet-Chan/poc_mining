@@ -47,6 +47,14 @@ aligned_alloc = "0.1"
 reqwest = { version = "0.9.9", default-features = false, features = ["rustls-tls"] }
 bytes = "0.4.11"
 url_serde = "0.2"
+async-std = "1.2.0"
+
+
+substrate-subxt = "0.5.0"
+sub-runtime = { git = "https://github.com/IPSE-TEAM/ipse-core", package = "node-runtime", version = "2.0.0-alpha.4", branch = "mining"}
+codec = { package = "parity-scale-codec", version = "1.2", default-features = false, features = ["derive", "full"] }
+sp-keyring = { version = "2.0.0-alpha.4", package = "sp-keyring" }
+sp-core = { version = "2.0.0-alpha.4", package = "sp-core" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["fileapi"] }

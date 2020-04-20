@@ -1,5 +1,5 @@
 use crate::com::api::{FetchError, MiningInfoResponse};
-use crate::com::client::{Client, ProxyDetails, SubmissionParameters};
+use crate::com::client::{Client, ProxyDetails, SubmissionParameters, SubError};
 use crate::future::prio_retry::PrioRetry;
 use futures::future::Future;
 use futures::stream::Stream;
@@ -73,57 +73,19 @@ impl RequestHandler {
                     .then(move |res| {
                         match res {
                             Ok(res) => {
-                                if submission_params.deadline != res.deadline {
-                                    log_deadline_mismatch(
-                                        submission_params.height,
-                                        submission_params.account_id,
-                                        submission_params.nonce,
-                                        submission_params.deadline,
-                                        res.deadline,
-                                    );
+                                if res.verify_result{
+                                    println!()
                                 } else {
-                                    log_submission_accepted(
-                                        submission_params.account_id,
-                                        submission_params.nonce,
-                                        submission_params.deadline,
-                                    );
+                                    warn!("verify failed: accountId = {}, height = {}, nonce = {}, deadline = {}",
+                                          &submission_params.account_id,
+                                          &submission_params.height,
+                                          &submission_params.nonce,
+                                          &submission_params.deadline,
+                                    )
                                 }
                             }
-                            Err(FetchError::Pool(e)) => {
-                                // Very intuitive, if some pools send an empty message they are
-                                // experiencing too much load expect the submission to be resent later.
-                                if e.message.is_empty() || e.message == "limit exceeded" {
-                                    log_pool_busy(
-                                        submission_params.account_id,
-                                        submission_params.nonce,
-                                        submission_params.deadline,
-                                    );
-                                    let res = tx_submit_data.unbounded_send(submission_params);
-                                    if let Err(e) = res {
-                                        error!("can't send submission params: {}", e);
-                                    }
-                                } else {
-                                    log_submission_not_accepted(
-                                        submission_params.height,
-                                        submission_params.account_id,
-                                        submission_params.nonce,
-                                        submission_params.deadline,
-                                        e.code,
-                                        &e.message,
-                                    );
-                                }
-                            }
-                            Err(FetchError::Http(x)) => {
-                                log_submission_failed(
-                                    submission_params.account_id,
-                                    submission_params.nonce,
-                                    submission_params.deadline,
-                                    x.description(),
-                                );
-                                let res = tx_submit_data.unbounded_send(submission_params);
-                                if let Err(e) = res {
-                                    error!("can't send submission params: {}", e);
-                                }
+                            Err(err) => {
+                                println!("submit nonce error: {}", err),
                             }
                         };
                         Ok(())
@@ -134,7 +96,7 @@ impl RequestHandler {
         executor.spawn(stream);
     }
 
-    pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
+    pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = SubError> {
         self.client.get_mining_info()
     }
 
