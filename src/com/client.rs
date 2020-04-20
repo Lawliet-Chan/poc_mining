@@ -26,6 +26,7 @@ pub use substrate_subxt::{
 use sub_runtime::Runtime;
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
+use sp_runtime::traits::SaturatedConversion;
 
 type AccountId = <Runtime as System>::AccountId;
 
@@ -134,13 +135,12 @@ impl Client {
             base_target = target.base_target;
         }
 
-        let mut height = 0_u64;
+        let mut height = self.get_current_height();
         let mut deadline = 0_u64;
         let dl_key = StorageKey(b"DlInfo".to_vec());
         let dl_opt = self.inner.fetch(dl_key, None).await?;
         if let Some(dls) = dl_opt {
             if let Some(dl) = dls.last(){
-                height = dl.block;
                 deadline = dl.best_dl;
             }
         }
@@ -162,7 +162,7 @@ impl Client {
         let xt = self.inner.xt(signer, None).await?;
         let xt_result = xt
             .watch()
-            .submit(Self::mining(submission_data.account_id, submission_data.gen_sig, submission_data.nonce, submission_data.deadline))
+            .submit(Self::mining(submission_data.account_id, submission_data.height, submission_data.gen_sig, submission_data.nonce, submission_data.deadline))
             .await?;
         match xt_result {
             Ok(success) => {
@@ -181,13 +181,20 @@ impl Client {
         }
     }
 
-    fn mining(account_id: u64, sig: [u8; 32], nonce: u64, deadline: u64) -> Call<MiningArgs>{
+    fn mining(account_id: u64, height: u64, sig: [u8; 32], nonce: u64, deadline: u64) -> Call<MiningArgs>{
         Call::new(MODULE, MINING, MiningArgs{
             account_id,
+            height,
             sig,
             nonce,
             deadline,
         })
+    }
+
+    fn get_current_height(&self) -> u64 {
+        let header = self.inner.header(None).unwrap().unwrap();
+        let block_num = header.number();
+        block_num.saturated_into::<u64>()
     }
 }
 

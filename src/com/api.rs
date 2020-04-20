@@ -30,6 +30,14 @@ pub struct SubmitNonceResponse {
 }
 
 #[derive(Encode)]
+pub struct MiningArgs {
+    pub account_id: u64,
+    pub height: u64,
+    pub sig: [u8; 32],
+    pub nonce: u64,
+    pub deadline: u64,
+}
+
 pub struct MiningInfoResponse {
     pub generation_signature: [u8; 32],
 
