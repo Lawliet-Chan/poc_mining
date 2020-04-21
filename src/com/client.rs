@@ -2,7 +2,7 @@ use crate::com::api::*;
 use futures::stream::Stream;
 use futures::Future;
 use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::r#async::{Client as InnerClient, ClientBuilder, Decoder};
+use reqwest::r#async::{Client as InnerClient, Decoder};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::mem;
@@ -170,7 +170,7 @@ impl Client {
                     .find_event::<(AccountId, bool)>(
                         MODULE, "VerifyDeadline",
                     ) {
-                    Some(Ok((_id, verify_ok))) => {
+                    Some(Ok((_id, verify_result))) => {
                         return Ok(SubmitNonceResponse{verify_result})
                     }
                     Some(Err(err)) => return Err(err.into()),
