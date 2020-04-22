@@ -66,7 +66,7 @@ pub struct PoolError {
     pub message: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum FetchError {
     Http(reqwest::Error),
     Pool(PoolError),
