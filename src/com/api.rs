@@ -24,7 +24,7 @@ pub struct GetMiningInfoRequest<'a> {
     pub request_type: &'a str,
 }
 
-#[derive(Encode)]
+#[derive(Encode, Deserialize)]
 pub struct SubmitNonceResponse {
     pub verify_result: bool,
 }
@@ -38,6 +38,7 @@ pub struct MiningArgs {
     pub deadline: u64,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct MiningInfoResponse {
     pub generation_signature: [u8; 32],
 
