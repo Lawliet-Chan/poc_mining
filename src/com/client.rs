@@ -120,7 +120,7 @@ impl Client {
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
-        async_std::task::block_on(async move {
+        async {
             // use block_hash as gen_sig
             let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
 
@@ -147,7 +147,7 @@ impl Client {
                 generation_signature: *block_hash,
                 target_deadline: deadline,
             })
-        })
+        }
     }
 
     /// Submit nonce to the pool and get the corresponding deadline.
@@ -170,21 +170,22 @@ impl Client {
                 )).await?;
             Ok(xt_result)
         });
-
-        match xt_result {
-            Ok(success) => {
-                match success
-                    .find_event::<(AccountId, bool)>(
-                        MODULE, "VerifyDeadline",
-                    ) {
-                    Some(Ok((_id, verify_result))) => {
-                        return Ok(SubmitNonceResponse{verify_result})
+        async {
+            match xt_result {
+                Ok(success) => {
+                    match success
+                        .find_event::<(AccountId, bool)>(
+                            MODULE, "VerifyDeadline",
+                        ) {
+                        Some(Ok((_id, verify_result))) => {
+                            return Ok(SubmitNonceResponse{verify_result})
+                        }
+                        Some(Err(err)) => return Err(err.into()),
+                        None => return Err(FetchError::Substrate(SubError::Other("Failed to find PoC::VerifyDeadline".to_string()))),
                     }
-                    Some(Err(err)) => return Err(err.into()),
-                    None => return Err(FetchError::Substrate(SubError::Other("Failed to find PoC::VerifyDeadline".to_string()))),
                 }
+                Err(err) => Err(err),
             }
-            Err(err) => Err(err),
         }
     }
 
