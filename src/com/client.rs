@@ -1,6 +1,7 @@
 use crate::com::api::*;
 use futures::stream::Stream;
 use futures::Future;
+use futures::future;
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::r#async::{Client as InnerClient, Decoder};
 use std::cmp::Ordering;
@@ -120,34 +121,33 @@ impl Client {
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
-        async {
-            // use block_hash as gen_sig
-            let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
+        // use block_hash as gen_sig
+        let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
 
-            let targets_key = StorageKey(b"TargetInfo".to_vec());
-            let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await?;
-            let mut base_target = 488671834567_u64;
-            if let Some(targets) = targets_opt {
-                let target = targets.last().unwrap();
-                base_target = target.base_target;
-            }
-
-            let mut height = self.get_current_height();
-            let mut deadline = 0_u64;
-            let dl_key = StorageKey(b"DlInfo".to_vec());
-            let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await?;
-            if let Some(dls) = dl_opt {
-                if let Some(dl) = dls.last(){
-                    deadline = dl.best_dl;
-                }
-            }
-            Ok(MiningInfoResponse{
-                base_target,
-                height,
-                generation_signature: *block_hash,
-                target_deadline: deadline,
-            })
+        let targets_key = StorageKey(b"TargetInfo".to_vec());
+        let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await?;
+        let mut base_target = 488671834567_u64;
+        if let Some(targets) = targets_opt {
+            let target = targets.last().unwrap();
+            base_target = target.base_target;
         }
+
+        let mut height = self.get_current_height();
+        let mut deadline = 0_u64;
+        let dl_key = StorageKey(b"DlInfo".to_vec());
+        let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await?;
+        if let Some(dls) = dl_opt {
+            if let Some(dl) = dls.last(){
+                deadline = dl.best_dl;
+            }
+        }
+        future::ok(MiningInfoResponse{
+            base_target,
+            height,
+            generation_signature: *block_hash,
+            target_deadline: deadline,
+        })
+
     }
 
     /// Submit nonce to the pool and get the corresponding deadline.
@@ -170,23 +170,23 @@ impl Client {
                 )).await?;
             Ok(xt_result)
         });
-        async {
-            match xt_result {
-                Ok(success) => {
-                    match success
-                        .find_event::<(AccountId, bool)>(
-                            MODULE, "VerifyDeadline",
-                        ) {
-                        Some(Ok((_id, verify_result))) => {
-                            return Ok(SubmitNonceResponse{verify_result})
-                        }
-                        Some(Err(err)) => return Err(err.into()),
-                        None => return Err(FetchError::Substrate(SubError::Other("Failed to find PoC::VerifyDeadline".to_string()))),
+
+        match xt_result {
+            Ok(success) => {
+                match success
+                    .find_event::<(AccountId, bool)>(
+                        MODULE, "VerifyDeadline",
+                    ) {
+                    Some(Ok((_id, verify_result))) => {
+                        return future::ok(SubmitNonceResponse{verify_result})
                     }
+                    Some(Err(err)) => return future::err(err.into()),
+                    None => return future::err(FetchError::Substrate(SubError::Other("Failed to find PoC::VerifyDeadline".to_string()))),
                 }
-                Err(err) => Err(err),
             }
+            Err(err) => future::err(err),
         }
+
     }
 
     fn mining(account_id: u64, height: u64, sig: [u8; 32], nonce: u64, deadline: u64) -> Call<MiningArgs>{
