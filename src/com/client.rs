@@ -23,7 +23,7 @@ pub use substrate_subxt::{
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
 use sp_runtime::traits::SaturatedConversion;
-use sub_runtime::poc::Difficulty;
+use sub_runtime::poc::{Difficulty, MiningInfo};
 
 type AccountId = <Runtime as System>::AccountId;
 
@@ -135,7 +135,7 @@ impl Client {
             let mut height = self.get_current_height();
             let mut deadline = 0_u64;
             let dl_key = StorageKey(b"DlInfo".to_vec());
-            let dl_opt = self.inner.fetch(dl_key, None).await?;
+            let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await?;
             if let Some(dls) = dl_opt {
                 if let Some(dl) = dls.last(){
                     deadline = dl.best_dl;

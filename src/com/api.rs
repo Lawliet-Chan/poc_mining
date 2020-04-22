@@ -70,11 +70,18 @@ pub enum FetchError {
     Http(reqwest::Error),
     Pool(PoolError),
     Substrate(substrate_subxt::Error),
+    Pcodec(codec::Error),
 }
 
 impl From<substrate_subxt::Error> for FetchError {
     fn from(err: substrate_subxt::Error) -> FetchError {
         FetchError::Substrate(err)
+    }
+}
+
+impl From<codec::Error> for FetchError {
+    fn from(err: codec::Error) -> FetchError {
+        FetchError::Pcodec(err)
     }
 }
 
