@@ -30,7 +30,7 @@ pub const MODULE: &str = "PoC";
 pub const MINING: &str = "mining";
 
 /// A client for communicating with Pool/Proxy/Wallet.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Client {
     inner: SubClient<Runtime>,
     account_id_to_secret_phrase: Arc<HashMap<u64, String>>,
@@ -119,33 +119,34 @@ impl Client {
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
-        // use block_hash as gen_sig
-        let block_hash = self.inner.block_hash(None).unwrap().unwrap().as_fixed_bytes();
+        async_std::task::block_on(async move {
+            // use block_hash as gen_sig
+            let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
 
-        let targets_key = StorageKey(b"TargetInfo".to_vec());
-        let targets_opt = self.inner.fetch(targets_key, None)?;
-        let mut base_target = 488671834567_u64;
-        if let Some(targets) = targets_opt {
-            let target = targets.last().unwrap();
-            base_target = target.base_target;
-        }
-
-        let mut height = self.get_current_height();
-        let mut deadline = 0_u64;
-        let dl_key = StorageKey(b"DlInfo".to_vec());
-        let dl_opt = self.inner.fetch(dl_key, None)?;
-        if let Some(dls) = dl_opt {
-            if let Some(dl) = dls.last(){
-                deadline = dl.best_dl;
+            let targets_key = StorageKey(b"TargetInfo".to_vec());
+            let targets_opt = self.inner.fetch(targets_key, None).await?;
+            let mut base_target = 488671834567_u64;
+            if let Some(targets) = targets_opt {
+                let target = targets.last().unwrap();
+                base_target = target.base_target;
             }
-        }
-        Ok(MiningInfoResponse{
-            base_target,
-            height,
-            generation_signature: block_hash,
-            target_deadline: deadline,
-        })
 
+            let mut height = self.get_current_height();
+            let mut deadline = 0_u64;
+            let dl_key = StorageKey(b"DlInfo".to_vec());
+            let dl_opt = self.inner.fetch(dl_key, None).await?;
+            if let Some(dls) = dl_opt {
+                if let Some(dl) = dls.last(){
+                    deadline = dl.best_dl;
+                }
+            }
+            Ok(MiningInfoResponse{
+                base_target,
+                height,
+                generation_signature: block_hash,
+                target_deadline: deadline,
+            })
+        })
     }
 
     /// Submit nonce to the pool and get the corresponding deadline.
@@ -153,17 +154,22 @@ impl Client {
         &self,
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
-        let signer = AccountKeyring::Alice.pair();
-        let xt = self.inner.xt(signer, None)?;
-        let xt_result = xt
-            .watch()
-            .submit(Self::mining(
-                submission_data.account_id,
-                submission_data.height,
-                submission_data.gen_sig,
-                submission_data.nonce,
-                submission_data.deadline
-            ))?;
+        let xt_result =
+        async_std::task::block_on(async move {
+            let signer = AccountKeyring::Alice.pair();
+            let xt = self.inner.xt(signer, None).await?;
+            let xt_result = xt
+                .watch()
+                .submit(Self::mining(
+                    submission_data.account_id,
+                    submission_data.height,
+                    submission_data.gen_sig,
+                    submission_data.nonce,
+                    submission_data.deadline
+                )).await?;
+            Ok(xt_result)
+        });
+
         match xt_result {
             Ok(success) => {
                 match success
