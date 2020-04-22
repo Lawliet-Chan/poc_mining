@@ -2,7 +2,6 @@ use bytes::Buf;
 use reqwest::r#async::Chunk;
 use serde::de::{self, DeserializeOwned};
 use std::fmt;
-use std::fmt::Display;
 use codec::{
     Decode,
     Encode,
@@ -67,7 +66,7 @@ pub struct PoolError {
     pub message: String,
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug)]
 pub enum FetchError {
     Http(reqwest::Error),
     Pool(PoolError),
