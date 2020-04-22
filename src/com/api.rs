@@ -25,6 +25,7 @@ pub struct GetMiningInfoRequest<'a> {
 }
 
 #[derive(Encode, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubmitNonceResponse {
     pub verify_result: bool,
 }
@@ -39,6 +40,7 @@ pub struct MiningArgs {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MiningInfoResponse {
     pub generation_signature: [u8; 32],
 
