@@ -72,7 +72,7 @@ pub enum FetchError {
     Substrate(substrate_subxt::Error),
 }
 
-impl From<subtrate_subxt::Error> for FetchError {
+impl From<substrate_subxt::Error> for FetchError {
     fn from(err: substrate_subxt::Error) -> FetchError {
         FetchError::Substrate(err)
     }

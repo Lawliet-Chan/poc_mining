@@ -23,7 +23,7 @@ pub use substrate_subxt::{
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
 use sp_runtime::traits::SaturatedConversion;
-use sub_runtime::Difficulty;
+use sub_runtime::poc::Difficulty;
 
 type AccountId = <Runtime as System>::AccountId;
 
