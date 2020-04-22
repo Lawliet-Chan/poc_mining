@@ -2,6 +2,7 @@ use bytes::Buf;
 use reqwest::r#async::Chunk;
 use serde::de::{self, DeserializeOwned};
 use std::fmt;
+use std::fmt::Display;
 use codec::{
     Decode,
     Encode,
