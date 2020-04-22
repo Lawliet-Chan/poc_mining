@@ -23,6 +23,7 @@ pub use substrate_subxt::{
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
 use sp_runtime::traits::SaturatedConversion;
+use sub_runtime::Difficulty;
 
 type AccountId = <Runtime as System>::AccountId;
 
@@ -124,7 +125,7 @@ impl Client {
             let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
 
             let targets_key = StorageKey(b"TargetInfo".to_vec());
-            let targets_opt = self.inner.fetch(targets_key, None).await?;
+            let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await?;
             let mut base_target = 488671834567_u64;
             if let Some(targets) = targets_opt {
                 let target = targets.last().unwrap();
@@ -143,7 +144,7 @@ impl Client {
             Ok(MiningInfoResponse{
                 base_target,
                 height,
-                generation_signature: block_hash,
+                generation_signature: *block_hash,
                 target_deadline: deadline,
             })
         })
