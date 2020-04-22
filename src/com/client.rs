@@ -23,7 +23,7 @@ pub use substrate_subxt::{
 };
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::traits::{SaturatedConversion, Header};
 use sub_runtime::poc::{Difficulty, MiningInfo};
 
 type AccountId = <Runtime as System>::AccountId;
@@ -123,10 +123,10 @@ impl Client {
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
         async_std::task::block_on(async move {
             // use block_hash as gen_sig
-            let block_hash = self.inner.block_hash(None).await?.unwrap().as_fixed_bytes();
+            let block_hash = self.inner.block_hash(None).await.unwrap().as_fixed_bytes();
 
             let targets_key = StorageKey(b"TargetInfo".to_vec());
-            let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await?;
+            let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await;
             let mut base_target = 488671834567_u64;
             if let Some(targets) = targets_opt {
                 let target = targets.last().unwrap();
@@ -136,7 +136,7 @@ impl Client {
             let mut height = self.get_current_height().await;
             let mut deadline = 0_u64;
             let dl_key = StorageKey(b"DlInfo".to_vec());
-            let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await?;
+            let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await;
             if let Some(dls) = dl_opt {
                 if let Some(dl) = dls.last(){
                     deadline = dl.best_dl;
@@ -202,7 +202,7 @@ impl Client {
     }
 
     async fn get_current_height(&self) -> u64 {
-        let header = self.inner.header(None).await?.unwrap();
+        let header = self.inner.header(None).await.unwrap();
         let block_num = header.number();
         block_num.saturated_into::<u64>()
     }
