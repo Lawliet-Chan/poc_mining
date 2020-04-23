@@ -2,8 +2,6 @@ use crate::com::api::*;
 use futures::stream::Stream;
 use futures::Future;
 use futures::future;
-use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::r#async::{Client as InnerClient, Decoder};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::mem;
@@ -109,7 +107,7 @@ impl Client {
         let url = base_uri.as_str();
         let client = ClientBuilder::<Runtime>::new()
             .set_url(url)
-            .build().unwrap();
+            .build();
 
         Self {
             inner: client,
@@ -203,7 +201,7 @@ impl Client {
 
     async fn get_current_height(&self) -> u64 {
         let header = self.inner.header(None).await.unwrap().unwrap();
-        let block_num = header.number();
+        let block_num: <Runtime as System>::BlockNumber = header.number().into();
         block_num.saturated_into::<u64>()
     }
 }

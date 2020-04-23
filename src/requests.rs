@@ -85,7 +85,7 @@ impl RequestHandler {
                                 }
                             }
                             Err(err) => {
-                                println!("submit nonce error: {}", err)
+                                error!("submit nonce error: {:?}", err)
                             }
                         };
                         Ok(())
