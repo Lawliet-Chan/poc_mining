@@ -123,7 +123,8 @@ impl Client {
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
         async_std::task::block_on(async move {
             // use block_hash as gen_sig
-            let block_hash = self.inner.block_hash(None).await.unwrap().unwrap().as_fixed_bytes();
+            let block_hash = self.inner.block_hash(None).await.unwrap().unwrap();
+            let block_hash = block_hash.as_fixed_bytes();
 
             let targets_key = StorageKey(b"TargetInfo".to_vec());
             let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await.unwrap();
@@ -202,7 +203,7 @@ impl Client {
     }
 
     async fn get_current_height(&self) -> u64 {
-        let header = self.inner.header::<Runtime::Hash>(None).await.unwrap().unwrap();
+        let header = self.inner.header::<<Runtime as System>::Hash>(None).await.unwrap().unwrap();
         let block_num = *header.number();
         block_num as u64
     }
