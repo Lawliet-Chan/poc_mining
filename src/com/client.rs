@@ -1,12 +1,9 @@
 use crate::com::api::*;
-use futures::stream::Stream;
 use futures::Future;
 use futures::future;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::mem;
 use std::sync::Arc;
-use std::time::Duration;
 use url::form_urlencoded::byte_serialize;
 use url::Url;
 
@@ -21,7 +18,7 @@ pub use substrate_subxt::{
 };
 use sp_core::storage::StorageKey;
 use sp_keyring::AccountKeyring;
-use sp_runtime::traits::{SaturatedConversion, Header};
+use sp_runtime::traits::{Header};
 use sub_runtime::poc::{Difficulty, MiningInfo};
 
 type AccountId = <Runtime as System>::AccountId;
@@ -95,10 +92,7 @@ impl Client {
     pub fn new(
         base_uri: Url,
         mut secret_phrases: HashMap<u64, String>,
-        timeout: u64,
         total_size_gb: usize,
-        proxy_details: ProxyDetails,
-        additional_headers: HashMap<String, String>,
     ) -> Self {
         for secret_phrase in secret_phrases.values_mut() {
             *secret_phrase = byte_serialize(secret_phrase.as_bytes()).collect();
@@ -134,7 +128,7 @@ impl Client {
                 base_target = target.base_target;
             }
 
-            let mut height = self.get_current_height().await;
+            let height = self.get_current_height().await;
             let mut deadline = 0_u64;
             let dl_key = StorageKey(b"DlInfo".to_vec());
             let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();

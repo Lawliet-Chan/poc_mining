@@ -3,7 +3,6 @@ use reqwest::r#async::Chunk;
 use serde::de::{self, DeserializeOwned};
 use std::fmt;
 use codec::{
-    Decode,
     Encode,
 };
 
@@ -49,10 +48,6 @@ pub struct MiningInfoResponse {
     pub target_deadline: u64,
 }
 
-fn default_target_deadline() -> u64 {
-    std::u64::MAX
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PoolErrorWrapper {
@@ -95,47 +90,5 @@ impl From<reqwest::Error> for FetchError {
 impl From<PoolError> for FetchError {
     fn from(err: PoolError) -> FetchError {
         FetchError::Pool(err)
-    }
-}
-
-// MOTHERFUCKING pool
-fn from_str_or_int<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    struct StringOrIntVisitor;
-
-    impl<'de> de::Visitor<'de> for StringOrIntVisitor {
-        type Value = u64;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("string or int")
-        }
-
-        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-            v.parse::<u64>().map_err(de::Error::custom)
-        }
-
-        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
-            Ok(v)
-        }
-    }
-
-    deserializer.deserialize_any(StringOrIntVisitor)
-}
-
-pub fn parse_json_result<T: DeserializeOwned>(body: &Chunk) -> Result<T, PoolError> {
-    match serde_json::from_slice(body.bytes()) {
-        Ok(x) => Ok(x),
-        _ => match serde_json::from_slice::<PoolErrorWrapper>(body.bytes()) {
-            Ok(x) => Err(x.error),
-            _ => {
-                let v = body.to_vec();
-                Err(PoolError {
-                    code: 0,
-                    message: String::from_utf8_lossy(&v).to_string(),
-                })
-            }
-        },
     }
 }

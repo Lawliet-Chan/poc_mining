@@ -1,11 +1,10 @@
 use crate::com::api::{FetchError, MiningInfoResponse};
-use crate::com::client::{Client, ProxyDetails, SubmissionParameters, SubError};
+use crate::com::client::{Client, ProxyDetails, SubmissionParameters};
 use crate::future::prio_retry::PrioRetry;
 use futures::future::Future;
 use futures::stream::Stream;
 use futures::sync::mpsc;
 use std::collections::HashMap;
-use std::error::Error;
 use std::time::Duration;
 use std::u64;
 use tokio;
@@ -66,7 +65,6 @@ impl RequestHandler {
     ) {
         let stream = PrioRetry::new(rx, Duration::from_secs(3))
             .and_then(move |submission_params| {
-                let tx_submit_data = tx_submit_data.clone();
                 client
                     .clone()
                     .submit_nonce(&submission_params)
@@ -123,59 +121,6 @@ impl RequestHandler {
             error!("can't send submission params: {}", e);
         }
     }
-}
-
-fn log_deadline_mismatch(
-    height: u64,
-    account_id: u64,
-    nonce: u64,
-    deadline: u64,
-    deadline_pool: u64,
-) {
-    error!(
-        "submit: deadlines mismatch, height={}, account={}, nonce={}, \
-         deadline_miner={}, deadline_pool={}",
-        height, account_id, nonce, deadline, deadline_pool
-    );
-}
-
-fn log_submission_failed(account_id: u64, nonce: u64, deadline: u64, err: &str) {
-    warn!(
-        "{: <80}",
-        format!(
-            "submission failed, retrying: account={}, nonce={}, deadline={}, description={}",
-            account_id, nonce, deadline, err
-        )
-    );
-}
-
-fn log_submission_not_accepted(
-    height: u64,
-    account_id: u64,
-    nonce: u64,
-    deadline: u64,
-    err_code: i32,
-    msg: &str,
-) {
-    error!(
-        "submission not accepted: height={}, account={}, nonce={}, \
-         deadline={}\n\tcode: {}\n\tmessage: {}",
-        height, account_id, nonce, deadline, err_code, msg,
-    );
-}
-
-fn log_submission_accepted(account_id: u64, nonce: u64, deadline: u64) {
-    info!(
-        "deadline accepted: account={}, nonce={}, deadline={}",
-        account_id, nonce, deadline
-    );
-}
-
-fn log_pool_busy(account_id: u64, nonce: u64, deadline: u64) {
-    info!(
-        "pool busy, retrying: account={}, nonce={}, deadline={}",
-        account_id, nonce, deadline
-    );
 }
 
 #[cfg(test)]

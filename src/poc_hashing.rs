@@ -5,12 +5,6 @@ use std::u64;
 
 const SCOOP_SIZE: usize = 64;
 
-pub fn decode_gensig(gensig: &str) -> [u8; 32] {
-    let mut gensig_bytes = [0; 32];
-    gensig_bytes[..].clone_from_slice(&hex::decode(gensig).unwrap());
-    gensig_bytes
-}
-
 pub fn calculate_scoop(height: u64, gensig: &[u8; 32]) -> u32 {
     let mut data: [u8; 64] = [0; 64];
     let height_bytes: [u8; 8] = unsafe { transmute(height.to_be()) };
