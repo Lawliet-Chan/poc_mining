@@ -27,20 +27,11 @@ impl RequestHandler {
         additional_headers: HashMap<String, String>,
         executor: TaskExecutor,
     ) -> RequestHandler {
-        // TODO
-        let proxy_details = if send_proxy_details {
-            ProxyDetails::Enabled
-        } else {
-            ProxyDetails::Disabled
-        };
 
         let client = Client::new(
             base_uri,
             secret_phrases,
-            timeout,
             total_size_gb,
-            proxy_details,
-            additional_headers,
         );
 
         let (tx_submit_data, rx_submit_nonce_data) = mpsc::unbounded();
