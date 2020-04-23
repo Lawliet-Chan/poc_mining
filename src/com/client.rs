@@ -105,10 +105,10 @@ impl Client {
         }
 
         let url = base_uri.as_str();
-        let client = async_std::task::block_on( async move {
+        let client = async_std::task::block_on(async move {
             ClientBuilder::<Runtime>::new()
                 .set_url(url)
-                .build().await.unwrap();
+                .build().await.unwrap()
         });
 
         Self {
@@ -202,7 +202,7 @@ impl Client {
     }
 
     async fn get_current_height(&self) -> u64 {
-        let header = self.inner.header(None).await.unwrap().unwrap();
+        let header = self.inner.header::<Runtime::Hash>(None).await.unwrap().unwrap();
         let block_num = *header.number();
         block_num as u64
     }
