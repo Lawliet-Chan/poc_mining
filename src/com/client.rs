@@ -105,9 +105,11 @@ impl Client {
         }
 
         let url = base_uri.as_str();
-        let client = ClientBuilder::<Runtime>::new()
-            .set_url(url)
-            .build();
+        let client = async_std::task::block_on( async move {
+            ClientBuilder::<Runtime>::new()
+                .set_url(url)
+                .build().await.unwrap();
+        });
 
         Self {
             inner: client,
