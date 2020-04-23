@@ -200,7 +200,7 @@ impl Client {
     }
 
     async fn get_current_height(&self) -> u64 {
-        let header: <Runtime as System>::Header = self.inner.header(None).await.unwrap().unwrap();
+        let header = self.inner.header(None).await.unwrap().unwrap();
         let block_num = *header.number();
         block_num as u64
     }
