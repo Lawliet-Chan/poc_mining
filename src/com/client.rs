@@ -139,7 +139,7 @@ impl Client {
                     deadline = dl.best_dl;
                 }
             }
-            info!("Mining Info: base_target = {}, height = {}, sig = {}, target_deadline = {}", base_target, height, *block_hash, deadline);
+            info!("Mining Info: base_target = {}, height = {}, sig = {:?}, target_deadline = {}", base_target, height, *block_hash, deadline);
             future::ok(MiningInfoResponse{
                 base_target,
                 height,
