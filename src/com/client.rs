@@ -116,7 +116,6 @@ impl Client {
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
-        info!("start get_mining_info");
         async_std::task::block_on(async move {
             // use block_hash as gen_sig
             let block_hash = self.inner.block_hash(None).await.unwrap().unwrap();
@@ -155,6 +154,7 @@ impl Client {
         &self,
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
+        info!("starting submit_nonce to substrate!!!");
         let xt_result =
         async_std::task::block_on(async move {
             let signer = AccountKeyring::Alice.pair();
