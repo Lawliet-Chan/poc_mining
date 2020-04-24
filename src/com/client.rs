@@ -116,6 +116,7 @@ impl Client {
 
     /// Get current mining info.
     pub fn get_mining_info(&self) -> impl Future<Item = MiningInfoResponse, Error = FetchError> {
+        info!("start get_mining_info");
         async_std::task::block_on(async move {
             // use block_hash as gen_sig
             let block_hash = self.inner.block_hash(None).await.unwrap().unwrap();
@@ -138,6 +139,7 @@ impl Client {
                     deadline = dl.best_dl;
                 }
             }
+            info!("Mining Info: base_target = {}, height = {}, sig = {}, target_deadline = {}", base_target, height, *block_hash, deadline);
             future::ok(MiningInfoResponse{
                 base_target,
                 height,
