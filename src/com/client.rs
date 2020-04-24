@@ -130,7 +130,7 @@ impl Client {
             }
 
             let height = self.get_current_height().await;
-            let mut deadline = 0_u64;
+            let mut deadline = std::u64::MAX;
             let dl_key = StorageKey(b"DlInfo".to_vec());
             let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();
             if let Some(dls) = dl_opt {
