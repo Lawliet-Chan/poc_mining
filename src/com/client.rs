@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use url::form_urlencoded::byte_serialize;
 use url::Url;
+use log::info;
 
 pub use substrate_subxt::{
     system::System,
@@ -175,6 +176,7 @@ impl Client {
                         MODULE, "VerifyDeadline",
                     ) {
                     Some(Ok((_id, verify_result))) => {
+                        info!("verify result: {}", verify_result);
                         return future::ok(SubmitNonceResponse{verify_result})
                     }
                     Some(Err(err)) => return future::err(err.into()),
