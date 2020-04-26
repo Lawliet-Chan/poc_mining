@@ -196,7 +196,7 @@ impl Client {
     }
 
     /// Get the last mining info from Substrate.
-    fn get_last_mining_info(&self) -> Option<MiningInfo<AccountId>> {
+    async fn get_last_mining_info(&self) -> Option<MiningInfo<AccountId>> {
         let dl_key = StorageKey(b"DlInfo".to_vec());
         let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();
         if let Some(dls) = dl_opt {
@@ -207,7 +207,7 @@ impl Client {
     }
 
     /// Get the last difficulty from Substrate.
-    fn get_last_difficulty(&self) -> Option<Difficulty> {
+    async fn get_last_difficulty(&self) -> Option<Difficulty> {
         let targets_key = StorageKey(b"TargetInfo".to_vec());
         let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await.unwrap();
         if let Some(targets) = targets_opt {
