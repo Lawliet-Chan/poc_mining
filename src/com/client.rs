@@ -126,6 +126,7 @@ impl Client {
                 info!("THERE WAS a !!!!base_target = {}", di.base_target);
                 di.base_target
             } else {
+                info!("!!!!!!!use default base-target!!!!");
                 488671834567_u64
             };
 
@@ -133,6 +134,7 @@ impl Client {
                 info!("THERE WAS a !!!!best_dl = {}", dl.best_dl);
                 dl.best_dl
             } else {
+                info!("!!!!!!use default deadline!!!!");
                 std::u64::MAX
             };
 
