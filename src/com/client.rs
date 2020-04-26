@@ -123,18 +123,21 @@ impl Client {
             let height = self.get_current_height().await;
 
             let base_target = if let Some(di) = self.get_last_difficulty().await {
+                info!("THERE WAS a !!!!base_target = {}", di.base_target);
                 di.base_target
             } else {
                 488671834567_u64
             };
 
             let deadline = if let Some(dl) = self.get_last_mining_info().await {
+                info!("THERE WAS a !!!!best_dl = {}", dl.best_dl);
                 dl.best_dl
             } else {
                 std::u64::MAX
             };
 
-            info!("Mining Info: base_target = {}, height = {}, sig = {:?}, target_deadline = {}", base_target, height, *block_hash, deadline);
+            info!("GET CURRENT Mining Info: base_target = {}, height = {}, sig = {:?}, target_deadline = {}",
+                  base_target, height, *block_hash, deadline);
             future::ok(MiningInfoResponse{
                 base_target,
                 height,
@@ -160,9 +163,11 @@ impl Client {
                     info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
                     Err(())
                 } else {
+                    info!("find a better deadline = {}", submission_data.deadline );
                     Ok(())
                 }
             } else {
+                info!("find no last-mining-info");
                 Ok(())
             }
         });
