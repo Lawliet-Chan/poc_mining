@@ -120,24 +120,20 @@ impl Client {
             // use block_hash as gen_sig
             let block_hash = self.inner.block_hash(None).await.unwrap().unwrap();
             let block_hash = block_hash.as_fixed_bytes();
-
-            let targets_key = StorageKey(b"TargetInfo".to_vec());
-            let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await.unwrap();
-            let mut base_target = 488671834567_u64;
-            if let Some(targets) = targets_opt {
-                let target = targets.last().unwrap();
-                base_target = target.base_target;
-            }
-
             let height = self.get_current_height().await;
-            let mut deadline = std::u64::MAX;
-            let dl_key = StorageKey(b"DlInfo".to_vec());
-            let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();
-            if let Some(dls) = dl_opt {
-                if let Some(dl) = dls.last(){
-                    deadline = dl.best_dl;
-                }
-            }
+
+            let base_target = if let Some(di) = self.get_last_difficulty() {
+                di.base_target
+            } else {
+                488671834567_u64
+            };
+
+            let deadline = if let Some(dl) = self.get_last_mining_info() {
+                dl.best_dl
+            } else {
+                std::u64::MAX
+            };
+
             info!("Mining Info: base_target = {}, height = {}, sig = {:?}, target_deadline = {}", base_target, height, *block_hash, deadline);
             future::ok(MiningInfoResponse{
                 base_target,
@@ -149,14 +145,23 @@ impl Client {
 
     }
 
-    /// Submit nonce to the pool and get the corresponding deadline.
+    /// Submit nonce to Substrate.
     pub fn submit_nonce(
         &self,
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
-        info!("starting submit_nonce to substrate!!!");
+
         let xt_result =
         async_std::task::block_on(async move {
+            info!("check current best deadline!!!");
+            if let Some(info) = self.get_last_mining_info(){
+                if info.best_dl <= submission_data.deadline {
+                    info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
+                    return future::ok(SubmitNonceResponse{verify_result: false})
+                }
+            };
+
+            info!("starting submit_nonce to substrate!!!");
             let signer = AccountKeyring::Alice.pair();
             let xt = self.inner.xt(signer, None).await?;
             let xt_result = xt
@@ -190,6 +195,29 @@ impl Client {
 
     }
 
+    /// Get the last mining info from Substrate.
+    fn get_last_mining_info(&self) -> Option<MiningInfo<AccountId>> {
+        let dl_key = StorageKey(b"DlInfo".to_vec());
+        let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();
+        if let Some(dls) = dl_opt {
+            if let Some(dl) = dls.last(){
+                Some(dl.clone())
+            } else { None }
+        } else { None }
+    }
+
+    /// Get the last difficulty from Substrate.
+    fn get_last_difficulty(&self) -> Option<Difficulty> {
+        let targets_key = StorageKey(b"TargetInfo".to_vec());
+        let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await.unwrap();
+        if let Some(targets) = targets_opt {
+            let target = targets.last().unwrap();
+            Some(target.clone())
+        } else {
+            None
+        }
+    }
+
     fn mining(account_id: u64, height: u64, sig: [u8; 32], nonce: u64, deadline: u64) -> Call<MiningArgs>{
         Call::new(MODULE, MINING, MiningArgs{
             account_id,
@@ -200,6 +228,7 @@ impl Client {
         })
     }
 
+    /// Get current block height from Substrate.
     async fn get_current_height(&self) -> u64 {
         let header = self.inner.header::<<Runtime as System>::Hash>(None).await.unwrap().unwrap();
         let block_num = *header.number();
