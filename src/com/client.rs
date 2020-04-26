@@ -151,16 +151,27 @@ impl Client {
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
 
-        let xt_result =
+        let check_dl_result =
         async_std::task::block_on(async move {
             info!("check current best deadline!!!");
             if let Some(info) = self.get_last_mining_info().await {
                 if info.best_dl <= submission_data.deadline {
                     info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
-                    return future::ok(SubmitNonceResponse{verify_result: false})
+                    Err(())
+                } else {
+                    Ok(())
                 }
-            };
+            } else {
+                Ok(())
+            }
+        });
 
+        if check_dl_result.is_err() {
+            return future::ok(SubmitNonceResponse{verify_result: false})
+        }
+
+        let xt_result =
+        async_std::task::block_on(async move {
             info!("starting submit_nonce to substrate!!!");
             let signer = AccountKeyring::Alice.pair();
             let xt = self.inner.xt(signer, None).await?;
