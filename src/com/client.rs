@@ -155,6 +155,7 @@ impl Client {
         async_std::task::block_on(async move {
             info!("check current best deadline!!!");
             if let Some(info) = self.get_last_mining_info().await {
+                info!("on-chain best deadline = {} ,  deadline to submit = {}", info.best_dl, submission_data.deadline);
                 if info.best_dl <= submission_data.deadline {
                     info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
                     Err(())
