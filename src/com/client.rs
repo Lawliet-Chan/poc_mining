@@ -122,13 +122,13 @@ impl Client {
             let block_hash = block_hash.as_fixed_bytes();
             let height = self.get_current_height().await;
 
-            let base_target = if let Some(di) = self.get_last_difficulty() {
+            let base_target = if let Some(di) = self.get_last_difficulty().await {
                 di.base_target
             } else {
                 488671834567_u64
             };
 
-            let deadline = if let Some(dl) = self.get_last_mining_info() {
+            let deadline = if let Some(dl) = self.get_last_mining_info().await {
                 dl.best_dl
             } else {
                 std::u64::MAX
@@ -154,7 +154,7 @@ impl Client {
         let xt_result =
         async_std::task::block_on(async move {
             info!("check current best deadline!!!");
-            if let Some(info) = self.get_last_mining_info(){
+            if let Some(info) = self.get_last_mining_info().await {
                 if info.best_dl <= submission_data.deadline {
                     info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
                     return future::ok(SubmitNonceResponse{verify_result: false})
