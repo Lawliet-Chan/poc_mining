@@ -161,7 +161,7 @@ impl Client {
             info!("check current best deadline!!!");
             if let Some(info) = self.get_last_mining_info().await {
                 info!("on-chain best deadline = {} ,  deadline to submit = {}", info.best_dl, submission_data.deadline);
-                if info.best_dl <= submission_data.deadline {
+                if info.best_dl <= submission_data.deadline && (info.block - 1)/3 == (submission_data.height - 1)/3{
                     info!(" There was already a better deadline on chain, the best deadline on-chain is {} ", info.best_dl);
                     Err(())
                 } else {
