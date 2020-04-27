@@ -475,7 +475,6 @@ impl Miner {
                                 }
                                 if mining_info.generation_signature != state.generation_signature_bytes {
                                     state.update_mining_info(&mining_info);
-                                    println!("******* update mining_info ******");
 
                                     reader.lock().unwrap().start_reading(
                                         mining_info.height,
@@ -484,7 +483,6 @@ impl Miner {
                                         state.scoop,
                                         &Arc::new(state.generation_signature_bytes),
                                     );
-                                    println!("============ finish reading reader ==========");
                                     drop(state);
                                 } else if !state.scanning
                                     && wakeup_after != 0
