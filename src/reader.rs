@@ -112,13 +112,11 @@ impl Reader {
                 })
                 .expect("Error sending 'round start' signal to GPU");
         }
-        println!("-=-=-=-=-=-=-=-=-= start_reading:  drive_id_to_plots -=-=-=-=-=-=-=-=-=-=-");
         self.interupts = self
             .drive_id_to_plots
             .iter()
             .map(|(drive, plots)| {
                 let (interupt, task) = if self.show_progress {
-                    println!("=-=-=-=-=-=-=-=-=  (1) -=-=-=-=-=--=-=-=");
                     self.create_read_task(
                         Some(pb.clone()),
                         drive.clone(),
@@ -131,7 +129,6 @@ impl Reader {
                         self.show_drive_stats,
                     )
                 } else {
-                    println!("=-=-=-=-=-=-=-=-=  (2) -=-=-=-=-=--=-=-=");
                     self.create_read_task(
                         None,
                         drive.clone(),

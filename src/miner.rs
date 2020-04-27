@@ -574,6 +574,7 @@ impl Miner {
                                     )
                                 );
                                 state.sw.restart();
+                                println!("%%%%%%%%%%% finished sw.restart %%%%%%%%%%%");
                                 state.scanning = false;
                             }
                         }
