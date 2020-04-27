@@ -484,6 +484,7 @@ impl Miner {
                                         state.scoop,
                                         &Arc::new(state.generation_signature_bytes),
                                     );
+                                    println!("============ finish reading reader ==========");
                                     drop(state);
                                 } else if !state.scanning
                                     && wakeup_after != 0
