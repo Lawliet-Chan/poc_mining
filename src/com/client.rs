@@ -155,7 +155,7 @@ impl Client {
         &self,
         submission_data: &SubmissionParameters,
     ) -> impl Future<Item = SubmitNonceResponse, Error = FetchError> {
-        println!(" start submit nonce to Substrate");
+        println!(" --------------start submit nonce to Substrate-------------------");
         let check_dl_result =
         async_std::task::block_on(async move {
             info!("check current best deadline!!!");

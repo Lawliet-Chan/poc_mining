@@ -475,6 +475,7 @@ impl Miner {
                                 }
                                 if mining_info.generation_signature != state.generation_signature_bytes {
                                     state.update_mining_info(&mining_info);
+                                    println!("******* update mining_info ******");
 
                                     reader.lock().unwrap().start_reading(
                                         mining_info.height,
