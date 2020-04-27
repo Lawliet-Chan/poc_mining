@@ -17,7 +17,7 @@ pub use substrate_subxt::{
     DefaultNodeRuntime as Runtime,
     ClientBuilder,
 };
-use sp_core::storage::StorageKey;
+use sp_core::{storage::StorageKey, twox_128};
 use sp_keyring::AccountKeyring;
 use sp_runtime::traits::{Header};
 use sub_runtime::poc::{Difficulty, MiningInfo};
@@ -216,7 +216,9 @@ impl Client {
 
     /// Get the last mining info from Substrate.
     async fn get_last_mining_info(&self) -> Option<MiningInfo<AccountId>> {
-        let dl_key = StorageKey(b"DlInfo".to_vec());
+        let mut storage_key = twox_128(MODULE.as_ref()).to_vec();
+        storage_key.extend(twox_128(b"DlInfo").to_vec());
+        let dl_key = StorageKey(storage_key);
         let dl_opt: Option<Vec<MiningInfo<AccountId>>> = self.inner.fetch(dl_key, None).await.unwrap();
         if let Some(dls) = dl_opt {
             if let Some(dl) = dls.last(){
@@ -227,7 +229,9 @@ impl Client {
 
     /// Get the last difficulty from Substrate.
     async fn get_last_difficulty(&self) -> Option<Difficulty> {
-        let targets_key = StorageKey(b"TargetInfo".to_vec());
+        let mut storage_key = twox_128(MODULE.as_ref()).to_vec();
+        storage_key.extend(twox_128(b"TargetInfo").to_vec());
+        let targets_key = StorageKey(storage_key);
         let targets_opt: Option<Vec<Difficulty>> = self.inner.fetch(targets_key, None).await.unwrap();
         if let Some(targets) = targets_opt {
             let target = targets.last().unwrap();
