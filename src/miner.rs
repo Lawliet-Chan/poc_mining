@@ -457,7 +457,7 @@ impl Miner {
 
         let state = self.state.clone();
         // there might be a way to solve this without two nested moves
-        let get_mining_info_interval = self.get_mining_info_interval;
+        let mut get_mining_info_interval = self.get_mining_info_interval;
         let wakeup_after = self.wakeup_after;
         self.executor.clone().spawn(
             Interval::new_interval(Duration::from_millis(get_mining_info_interval))
@@ -472,6 +472,9 @@ impl Miner {
                                 if state.outage {
                                     error!("{: <80}", "outage resolved.");
                                     state.outage = false;
+                                }
+                                if mining_info.duration_from_last_mining > 1000 {
+                                    get_mining_info_interval = 1000
                                 }
                                 if mining_info.generation_signature != state.generation_signature_bytes {
                                     state.update_mining_info(&mining_info);

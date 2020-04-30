@@ -130,12 +130,12 @@ impl Client {
                 488671834567_u64
             };
 
-            let deadline = if let Some(dl) = self.get_last_mining_info().await {
+            let (deadline, block) = if let Some(dl) = self.get_last_mining_info().await {
                 info!("THERE WAS a !!!!best_dl = {}", dl.best_dl);
-                dl.best_dl
+                (dl.best_dl, dl.block)
             } else {
                 info!("!!!!!!use default deadline!!!!");
-                std::u64::MAX
+                (std::u64::MAX, 0)
             };
 
             info!("GET CURRENT Mining Info: base_target = {}, height = {}, sig = {:?}, target_deadline = {}",
@@ -145,6 +145,7 @@ impl Client {
                 height,
                 generation_signature: *block_hash,
                 target_deadline: deadline,
+                duration_from_last_mining: (height - block) * 3000,
             })
         })
 

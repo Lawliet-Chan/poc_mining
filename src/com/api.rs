@@ -46,6 +46,8 @@ pub struct MiningInfoResponse {
     pub height: u64,
 
     pub target_deadline: u64,
+
+    pub duration_from_last_mining: u64,
 }
 
 #[derive(Debug, Deserialize)]
