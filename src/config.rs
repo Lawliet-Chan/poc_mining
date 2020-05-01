@@ -192,7 +192,7 @@ fn default_account_id_to_target_deadline() -> HashMap<u64, u64> {
 }
 
 fn default_get_mining_info_interval() -> u64 {
-    3000
+    9000
 }
 
 fn default_timeout() -> u64 {
