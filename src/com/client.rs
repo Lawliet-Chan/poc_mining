@@ -15,7 +15,7 @@ pub use substrate_subxt::{
     Call,
     Error as SubError,
     Client as SubClient,
-    DefaultNodeRuntime as Runtime,
+    //DefaultNodeRuntime as Runtime,
     ClientBuilder,
 };
 use sp_core::{storage::StorageKey, twox_128};
@@ -24,7 +24,7 @@ use sp_runtime::traits::{Header};
 use sub_runtime::poc::{Difficulty, MiningInfo};
 use crate::com::runtimes::{PocRuntime, Timestamp};
 
-// type Runtime = PocRuntime;
+type Runtime = PocRuntime;
 type AccountId = <Runtime as System>::AccountId;
 type Moment = <Runtime as Timestamp>::Moment;
 
