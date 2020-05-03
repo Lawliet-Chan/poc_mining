@@ -28,6 +28,8 @@ type Runtime = PocRuntime;
 type AccountId = <Runtime as System>::AccountId;
 type Moment = <Runtime as Timestamp>::Moment;
 
+pub const MAX_MINING_TIME: u64 = 9000;
+
 pub const POC_MODULE: &str = "PoC";
 pub const TS_MODULE: &str = "Timestamp";
 
@@ -188,6 +190,10 @@ impl Client {
         });
 
         if check_dl_result.is_err() {
+            return future::ok(SubmitNonceResponse{verify_result: false})
+        }
+
+        if submission_data.deadline > MAX_MINING_TIME {
             return future::ok(SubmitNonceResponse{verify_result: false})
         }
 
