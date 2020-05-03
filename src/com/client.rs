@@ -174,6 +174,12 @@ impl Client {
         let check_dl_result =
         async_std::task::block_on(async move {
             info!("check current best deadline!!!");
+            let height = self.get_current_height().await;
+            if height/3 - submission_data.height/3 > 1 {
+                info!("verification of this round is expired, Now on-chain height = {}", height);
+                return Err(())
+            }
+
             if let Some(info) = self.get_last_mining_info().await {
                 info!("on-chain best deadline = {} ,  deadline to submit = {}", info.best_dl, submission_data.deadline);
                 if info.best_dl <= submission_data.deadline && (info.block - 1)/3 == (submission_data.height - 1)/3{
