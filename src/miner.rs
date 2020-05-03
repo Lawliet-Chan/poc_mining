@@ -459,8 +459,8 @@ impl Miner {
         // there might be a way to solve this without two nested moves
         let get_mining_info_interval = self.get_mining_info_interval;
         let wakeup_after = self.wakeup_after;
-        let sleep_duration = Duration::from_millis(get_mining_info_interval - 500);
-        let interval_duration = Duration::from_millis(500);
+        let sleep_duration = Duration::from_millis(get_mining_info_interval - 1000);
+        let interval_duration = Duration::from_millis(1000);
         self.executor.clone().spawn(
             Interval::new_interval(interval_duration)
                 .for_each(move |_| {
@@ -539,14 +539,18 @@ impl Miner {
                             .account_id_to_best_deadline
                             .get(&nonce_data.account_id)
                             .unwrap_or(&u64::MAX);
-                        if best_deadline > deadline
+                        info!("@@@@@@@@@@ best_deadline = {}, deadline = {} @@@@@@@@@", best_deadline, deadline);
+                        info!("~~~~~~~~~~~~~~~~server_target_deadline = {}, accountid_id_dl= {} ~~~~~~~~~~~", state.server_target_deadline, *(account_id_to_target_deadline
+                            .get(&nonce_data.account_id)
+                            .unwrap_or(&target_deadline)));
+                        if deadline == 0 || (best_deadline > deadline
                             && deadline
                                 < min(
                                     state.server_target_deadline,
                                     *(account_id_to_target_deadline
                                         .get(&nonce_data.account_id)
                                         .unwrap_or(&target_deadline)),
-                                )
+                                ))
                         {
                             state
                                 .account_id_to_best_deadline
