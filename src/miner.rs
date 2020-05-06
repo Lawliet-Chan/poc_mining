@@ -543,15 +543,15 @@ impl Miner {
                         info!("~~~~~~~~~~~~~~~~server_target_deadline = {}, accountid_id_dl= {} ~~~~~~~~~~~", state.server_target_deadline, *(account_id_to_target_deadline
                             .get(&nonce_data.account_id)
                             .unwrap_or(&target_deadline)));
-                        if deadline == 0 || (best_deadline > deadline
-                            && deadline
-                                < min(
-                                    state.server_target_deadline,
-                                    *(account_id_to_target_deadline
-                                        .get(&nonce_data.account_id)
-                                        .unwrap_or(&target_deadline)),
-                                ))
-                        {
+                        // if deadline == 0 || (best_deadline > deadline
+                        //     && deadline
+                        //         < min(
+                        //             state.server_target_deadline,
+                        //             *(account_id_to_target_deadline
+                        //                 .get(&nonce_data.account_id)
+                        //                 .unwrap_or(&target_deadline)),
+                        //         ))
+                        // {
                             state
                                 .account_id_to_best_deadline
                                 .insert(nonce_data.account_id, deadline);
@@ -564,7 +564,7 @@ impl Miner {
                                 deadline,
                                 state.generation_signature_bytes,
                             );
-                        }
+                        //}
 
                         if nonce_data.reader_task_processed {
                             state.processed_reader_tasks += 1;
